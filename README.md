@@ -7,6 +7,12 @@
 This repo contains the image diffusion models and training/sampling code for our paper exploring 
 the Combinatorial Stochasticity for Diffusion Generative Models. 
 
+
+[Project Page](https://ruixu.me/html/ComboStoc/index.html) 
+
+[Paper link](https://arxiv.org/abs/2405.13729)
+
+
 #### We will add the image and structured shape generation code soon.
 
 #### Pls cite our paper:
