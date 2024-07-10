@@ -107,11 +107,6 @@ Then in training command add the `--wandb` flag:
 torchrun --nnodes=1 --nproc_per_node=N train.py --model ComboStoc-XL/2 --data-path /path/to/imagenet/train --wandb
 ```
 
-**Interpolant settings.** We also support different choices of interpolant and model predictions. For example, to launch ComboStoc-XL/2 (256x256) with `Linear` interpolant and `noise` prediction: 
-
-```bash
-torchrun --nnodes=1 --nproc_per_node=N train.py --model ComboStoc-XL/2 --data-path /path/to/imagenet/train --path-type Linear --prediction noise
-```
 
 **Resume training.** To resume training from custom checkpoint:
 
