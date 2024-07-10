@@ -5,19 +5,20 @@
 ![ComboStoc samples](visuals/teaser.png)
 
 This repo contains the image diffusion models and training/sampling code for our paper exploring 
-the Combinatorial Stochasticity for Diffusion Generative Models. [Arxiv](https://arxiv.org/abs/2405.13729)
+the Combinatorial Stochasticity for Diffusion Generative Models. [Project](https://ruixu.me/html/ComboStoc/index.html) [Arxiv](https://arxiv.org/abs/2405.13729)
 
 #### We will add the structured shape generation code later.
 
 #### Pls cite our paper:
 ```
-@article{xu2024combostoc,
+@misc{xu2024combostoccombinatorialstochasticitydiffusion,
       title={ComboStoc: Combinatorial Stochasticity for Diffusion Generative Models}, 
       author={Rui Xu and Jiepeng Wang and Hao Pan and Yang Liu and Xin Tong and Shiqing Xin and Changhe Tu and Taku Komura and Wenping Wang},
       year={2024},
       eprint={2405.13729},
       archivePrefix={arXiv},
-      primaryClass={cs.LG}
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2405.13729}, 
 }
 ```
 
