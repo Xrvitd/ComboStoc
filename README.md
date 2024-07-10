@@ -5,7 +5,7 @@
 ![ComboStoc samples](visuals/teaser.png)
 
 This repo contains the image diffusion models and training/sampling code for our paper exploring 
-the Combinatorial Stochasticity for Diffusion Generative Models. [[Project]](https://ruixu.me/html/ComboStoc/index.html) [Arxiv](https://arxiv.org/abs/2405.13729)
+the Combinatorial Stochasticity for Diffusion Generative Models. [[Project]](https://ruixu.me/html/ComboStoc/index.html) [[Arxiv]](https://arxiv.org/abs/2405.13729)
 
 #### We will add the structured shape generation code later.
 
@@ -36,7 +36,7 @@ This repository contains:
 * 🪐 A simple PyTorch [implementation](models.py) of ComboStoc following [SiT](https://github.com/willisma/SiT)
 <!-- * ⚡️ Pre-trained class-conditional ComboStoc models trained on ImageNet 256x256 -->
 * 🛸 A ComboStoc [training script](train.py) using PyTorch DDP
-* A pre-trained ComboStoc-XL-2 model with 'INSYNC_ALL' setting. [Google Drive](https://github.com/Xrvitd/ComboStoc)
+* A pre-trained ComboStoc-XL-2 model with 'INSYNC_ALL' setting. [[Google Drive]](https://github.com/Xrvitd/ComboStoc)
 
 ## Setup
 
