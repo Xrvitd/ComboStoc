@@ -32,7 +32,7 @@ Moreover, ComboStoc enables a new way of test time generation which uses insynch
 
 This repository contains:   
 
-* 🪐 A simple PyTorch [implementation](models.py) of ComboStoc following SiT
+* 🪐 A simple PyTorch [implementation](models.py) of ComboStoc following [SiT](https://github.com/willisma/SiT)
 <!-- * ⚡️ Pre-trained class-conditional ComboStoc models trained on ImageNet 256x256 -->
 * 🛸 A ComboStoc [training script](train.py) using PyTorch DDP
 
