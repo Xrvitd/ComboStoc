@@ -36,7 +36,7 @@ This repository contains:
 * 🪐 A simple PyTorch [implementation](models.py) of ComboStoc following [SiT](https://github.com/willisma/SiT)
 <!-- * ⚡️ Pre-trained class-conditional ComboStoc models trained on ImageNet 256x256 -->
 * 🛸 A ComboStoc [training script](train.py) using PyTorch DDP
-* A pre-trained ComboStoc-XL-2 model with 'INSYNC_ALL' setting at 800K. [[Google Drive]](https://drive.google.com/drive/folders/1EgIIbiN1Xup_wgjh1ksL2UV8_Qj2O1Pq?usp=sharing)
+* 📫 A pre-trained ComboStoc-XL-2 model with 'INSYNC_ALL' setting at 800K. [[Google Drive]](https://drive.google.com/drive/folders/1EgIIbiN1Xup_wgjh1ksL2UV8_Qj2O1Pq?usp=sharing)
 
 ## Setup
 
