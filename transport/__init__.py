@@ -1,4 +1,4 @@
-from .transport import Transport, ModelType, WeightType, PathType, Sampler
+from .transport import Transport, ModelType, WeightType, PathType, Sampler, ComboStocType
 
 def create_transport(
     path_type='Linear',
@@ -6,6 +6,7 @@ def create_transport(
     loss_weight=None,
     train_eps=None,
     sample_eps=None,
+    combostoc_type : str = "Error"
 ):
     """function for creating Transport object
     **Note**: model prediction defaults to velocity
@@ -58,6 +59,7 @@ def create_transport(
         loss_type=loss_type,
         train_eps=train_eps,
         sample_eps=sample_eps,
+        combostoc_type = ComboStocType[combostoc_type.upper()]
     )
     
     return state
