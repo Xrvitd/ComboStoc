@@ -1,9 +1,4 @@
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
 
-"""
-Sample new images from a pre-trained ComboStoc.
-"""
 import torch
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -40,7 +35,7 @@ def main(mode, args):
         num_classes=args.num_classes,
         learn_sigma=learn_sigma,
     ).to(device)
-    # Auto-download a pre-trained model or load a custom ComboStoc checkpoint from train.py:
+
     ckpt_path = args.ckpt or f"ComboStoc-XL-2-{args.image_size}x{args.image_size}.pt"
     state_dict = find_model(ckpt_path)
     model.load_state_dict(state_dict)
@@ -51,7 +46,7 @@ def main(mode, args):
         args.loss_weight,
         args.train_eps,
         args.sample_eps,
-        combostoc_type = "INSYNC_ALL"
+        combostoc_type = "UNSYNC_ALL"
     )
     sampler = Sampler(transport)
     if mode == "ODE":
@@ -85,7 +80,6 @@ def main(mode, args):
 
     vae = AutoencoderKL.from_pretrained(f"stabilityai/sd-vae-ft-{args.vae}").to(device)
 
-    # Labels to condition the model with (feel free to change):
     class_labels = [207, 360, 387, 974, 88, 979, 417, 279]
     
     # Create sampling noise:

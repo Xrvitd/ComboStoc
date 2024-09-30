@@ -9,27 +9,21 @@ from .utils import EasyDict, log_state, mean_flat
 from .integrators import ode, sde
 
 class ModelType(enum.Enum):
-    """
-    Which type of output the model predicts.
-    """
+
 
     NOISE = enum.auto()  # the model predicts epsilon
     SCORE = enum.auto()  # the model predicts \nabla \log p(x)
     VELOCITY = enum.auto()  # the model predicts v(x)
 
 class PathType(enum.Enum):
-    """
-    Which type of path to use.
-    """
+
 
     LINEAR = enum.auto()
     GVP = enum.auto()
     VP = enum.auto()
 
 class WeightType(enum.Enum):
-    """
-    Which type of weighting to use.
-    """
+
 
     NONE = enum.auto()
     VELOCITY = enum.auto()
@@ -39,10 +33,10 @@ class ComboStocType(enum.Enum):
     """
     Combinatorial Stochasticity type.
     """
-    INSYNC_NONE = enum.auto()
-    INSYNC_VEC = enum.auto()
-    INSYNC_PATCH = enum.auto()
-    INSYNC_ALL = enum.auto()
+    UNSYNC_NONE = enum.auto()
+    UNSYNC_VEC = enum.auto()
+    UNSYNC_PATCH = enum.auto()
+    UNSYNC_ALL = enum.auto()
 
 
 class Transport:
@@ -75,10 +69,7 @@ class Transport:
         self.use_blend = use_blend
 
     def prior_logp(self, z):
-        '''
-            Standard multivariate normal prior
-            Assume z is batched
-        '''
+
         shape = th.tensor(z.size())
         N = th.prod(shape[1:])
         _fn = lambda x: -N / 2. * np.log(2 * np.pi) - th.sum(x ** 2) / 2.
@@ -104,7 +95,7 @@ class Transport:
             t1 = 1 - eps if (not sde or last_step_size == 0) else 1 - last_step_size
 
         elif (type(self.path_sampler) in [path.ICPlan, path.GVPCPlan]) \
-            and (self.model_type != ModelType.VELOCITY or sde): # avoid numerical issue by taking a first semi-implicit step
+            and (self.model_type != ModelType.VELOCITY or sde):
 
             t0 = eps if (diffusion_form == "SBDM" and sde) or self.model_type != ModelType.VELOCITY else 0
             t1 = 1 - eps if (not sde or last_step_size == 0) else 1 - last_step_size
@@ -116,28 +107,24 @@ class Transport:
 
 
     def sample(self, x1):
-        """Sampling x0 & t based on shape of x1 (if needed)
-          Args:
-            x1 - data point; [batch, *dim]
-        """
         
         x0 = th.randn_like(x1)
         t0, t1 = self.check_interval(self.train_eps, self.sample_eps)
         t_ori = th.rand(x1.shape[0], 1, 1, 1) * (t1 - t0) + t0
         t_ori = t_ori.repeat(1, x1.shape[1], x1.shape[2], x1.shape[3])
 
-        if self.combostoc_type == ComboStocType.INSYNC_ALL:
+        if self.combostoc_type == ComboStocType.UNSYNC_ALL:
             t = th.rand(x1.shape) * (t1 - t0) + t0
             
-        elif self.combostoc_type == ComboStocType.INSYNC_VEC:
+        elif self.combostoc_type == ComboStocType.UNSYNC_VEC:
             t = th.rand(x1.shape[0], x1.shape[1], 1, 1) * (t1 - t0) + t0
             t = t.repeat(1, 1, x1.shape[2], x1.shape[3])
             
-        elif self.combostoc_type == ComboStocType.INSYNC_PATCH:
+        elif self.combostoc_type == ComboStocType.UNSYNC_PATCH:
             t = th.rand(x1.shape[0], 1, x1.shape[2], x1.shape[3]) * (t1 - t0) + t0
             t = t.repeat(1, x1.shape[1], 1, 1)
             
-        elif self.combostoc_type == ComboStocType.INSYNC_NONE:
+        elif self.combostoc_type == ComboStocType.UNSYNC_NONE:
             t = th.rand(x1.shape[0], 1, 1, 1) * (t1 - t0) + t0
             t = t.repeat(1, x1.shape[1], x1.shape[2], x1.shape[3])
             
@@ -162,8 +149,7 @@ class Transport:
 
     
     def compensate_offdiagonal_ut(self, x1, xt, ut):
-        """Compensate the off-diagonal velocity with to-diagonal residual
-        """
+
         delta = x1 - xt
         compensation = delta - \
                 (th.einsum("nchw,nchw->n", delta, ut) / th.einsum("nchw,nchw->n", ut, ut)).view(-1,1,1,1) * ut
@@ -179,12 +165,6 @@ class Transport:
         x1, 
         model_kwargs=None
     ):
-        """Loss for training the score model
-        Args:
-        - model: backbone model; could be score, noise, or velocity
-        - x1: datapoint
-        - model_kwargs: additional arguments for the model
-        """
         if model_kwargs == None:
             model_kwargs = {}
         
@@ -225,7 +205,6 @@ class Transport:
     def get_drift(
         self
     ):
-        """member function for obtaining the drift of the probability flow ODE"""
         def score_ode(x, t, model, **model_kwargs):
             drift_mean, drift_var = self.path_sampler.compute_drift(x, t)
             model_output = model(x, t, **model_kwargs)
@@ -260,8 +239,7 @@ class Transport:
     def get_score(
         self,
     ):
-        """member function for obtaining score of 
-            x_t = alpha_t * x + sigma_t * eps"""
+
         if self.model_type == ModelType.NOISE:
             score_fn = lambda x, t, model, **kwargs: model(x, t, **kwargs) / -self.path_sampler.compute_sigma_t(path.expand_t_like_x(t, x))[0]
         elif self.model_type == ModelType.SCORE:
@@ -275,16 +253,12 @@ class Transport:
 
 
 class Sampler:
-    """Sampler class for the transport model"""
+
     def __init__(
         self,
         transport,
     ):
-        """Constructor for a general sampler; supporting different sampling methods
-        Args:
-        - transport: an tranport object specify model prediction & interpolant type
-        """
-        
+
         self.transport = transport
         self.drift = self.transport.get_drift()
         self.score = self.transport.get_score()
@@ -315,7 +289,6 @@ class Sampler:
         last_step,
         last_step_size,
     ):
-        """Get the last step function of the SDE solver"""
     
         if last_step is None:
             last_step_fn = \
@@ -350,15 +323,7 @@ class Sampler:
         last_step_size=0.04,
         num_steps=250,
     ):
-        """returns a sampling function with given SDE settings
-        Args:
-        - sampling_method: type of sampler used in solving the SDE; default to be Euler-Maruyama
-        - diffusion_form: function form of diffusion coefficient; default to be matching SBDM
-        - diffusion_norm: function magnitude of diffusion coefficient; default to 1
-        - last_step: type of the last step; default to identity
-        - last_step_size: size of the last step; default to match the stride of 250 steps over [0,1]
-        - num_steps: total integration step of SDE
-        """
+
 
         if last_step is None:
             last_step_size = 0.0
@@ -411,16 +376,7 @@ class Sampler:
         rtol=1e-3,
         reverse=False,
     ):
-        """returns a sampling function with given ODE settings
-        Args:
-        - sampling_method: type of sampler used in solving the ODE; default to be Dopri5
-        - num_steps: 
-            - fixed solver (Euler, Heun): the actual number of integration steps performed
-            - adaptive solver (Dopri5): the number of datapoints saved during integration; produced by interpolation
-        - atol: absolute error tolerance for the solver
-        - rtol: relative error tolerance for the solver
-        - reverse: whether solving the ODE in reverse (data to noise); default to False
-        """
+
         if reverse:
             drift = lambda x, t, model, **kwargs: self.drift(x, th.ones_like(t) * (1 - t), model, **kwargs)
         else:
@@ -455,16 +411,7 @@ class Sampler:
         atol=1e-6,
         rtol=1e-3,
     ):
-        
-        """returns a sampling function for calculating likelihood with given ODE settings
-        Args:
-        - sampling_method: type of sampler used in solving the ODE; default to be Dopri5
-        - num_steps: 
-            - fixed solver (Euler, Heun): the actual number of integration steps performed
-            - adaptive solver (Dopri5): the number of datapoints saved during integration; produced by interpolation
-        - atol: absolute error tolerance for the solver
-        - rtol: relative error tolerance for the solver
-        """
+
         def _likelihood_drift(x, t, model, **model_kwargs):
             x, _ = x
             eps = th.randint(2, x.size(), dtype=th.float, device=x.device) * 2 - 1

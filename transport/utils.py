@@ -10,9 +10,6 @@ class EasyDict:
         return getattr(self, key)
 
 def mean_flat(x):
-    """
-    Take the mean over all non-batch dimensions.
-    """
     return th.mean(x, dim=list(range(1, len(x.size()))))
 
 def log_state(state):

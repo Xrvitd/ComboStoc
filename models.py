@@ -1,10 +1,3 @@
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-# --------------------------------------------------------
-# References:
-# GLIDE: https://github.com/openai/glide-text2im
-# MAE: https://github.com/facebookresearch/mae/blob/main/models_mae.py
-# --------------------------------------------------------
 
 import torch
 import torch.nn as nn
@@ -19,10 +12,6 @@ from timm.models.vision_transformer import PatchEmbed, Attention, Mlp
 def modulate(x, shift, scale):
     return x * (1 + scale) + shift
 
-
-#################################################################################
-#               Embedding Layers for Timesteps and Class Labels                 #
-#################################################################################
 
 class TimestepEmbedder(nn.Module):
     """
@@ -51,7 +40,7 @@ class TimestepEmbedder(nn.Module):
         :param max_period: controls the minimum frequency of the embeddings.
         :return: an (N, D) Tensor of positional embeddings.
         """
-        # https://github.com/openai/glide-text2im/blob/main/glide_text2im/nn.py
+
         half = dim // 2
         freqs = torch.exp(
             -math.log(max_period) * torch.arange(start=0, end=half, dtype=torch.float32) / half
@@ -63,8 +52,6 @@ class TimestepEmbedder(nn.Module):
         return embedding
 
     def forward(self, t):
-        # t_freq = self.timestep_embedding(t, self.frequency_embedding_size)
-        # t_emb = self.mlp(t_freq)
 
         t_freq = self.timestep_embedding(t, self.frequency_embedding_size)
         t_freq = self.mlp(t_freq)
@@ -105,14 +92,8 @@ class LabelEmbedder(nn.Module):
         return embeddings
 
 
-#################################################################################
-#                                 Core ComboStoc Model                                #
-#################################################################################
-
 class ComboStocBlock(nn.Module):
-    """
-    A ComboStoc block with adaptive layer norm zero (adaLN-Zero) conditioning.
-    """
+
     def __init__(self, hidden_size, num_heads, mlp_ratio=4.0, **block_kwargs):
         super().__init__()
         self.norm1 = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)
@@ -134,9 +115,7 @@ class ComboStocBlock(nn.Module):
 
 
 class FinalLayer(nn.Module):
-    """
-    The final layer of ComboStoc.
-    """
+
     def __init__(self, hidden_size, patch_size, out_channels):
         super().__init__()
         self.norm_final = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)
@@ -154,9 +133,7 @@ class FinalLayer(nn.Module):
 
 
 class ComboStoc(nn.Module):
-    """
-    Diffusion model with a Transformer backbone.
-    """
+
     def __init__(
         self,
         input_size=32,
@@ -231,10 +208,7 @@ class ComboStoc(nn.Module):
         nn.init.constant_(self.final_layer.linear.bias, 0)
 
     def unpatchify(self, x):
-        """
-        x: (N, T, patch_size**2 * C)
-        imgs: (N, H, W, C)
-        """
+
         c = self.out_channels
         p = self.x_embedder.patch_size[0]
         h = w = int(x.shape[1] ** 0.5)
@@ -252,12 +226,6 @@ class ComboStoc(nn.Module):
         return ckpt_forward
 
     def forward(self, x, t, y):
-        """
-        Forward pass of ComboStoc.
-        x: (N, C, H, W) tensor of spatial inputs (images or latent representations of images)
-        t: (N,) tensor of diffusion timesteps
-        y: (N,) tensor of class labels
-        """
 
         x_size = x.size()
 
@@ -282,17 +250,11 @@ class ComboStoc(nn.Module):
         return x
 
     def forward_with_cfg(self, x, t, y, cfg_scale):
-        """
-        Forward pass of ComboStoc, but also batches the unconditional forward pass for classifier-free guidance.
-        """
-        # https://github.com/openai/glide-text2im/blob/main/notebooks/text2im.ipynb
+
         half = x[: len(x) // 2]
         combined = torch.cat([half, half], dim=0)
         model_out = self.forward(combined, t, y)
-        # For exact reproducibility reasons, we apply classifier-free guidance on only
-        # three channels by default. The standard approach to cfg applies it to all channels.
-        # This can be done by uncommenting the following line and commenting-out the line following that.
-        # eps, rest = model_out[:, :self.in_channels], model_out[:, self.in_channels:]
+
         eps, rest = model_out[:, :3], model_out[:, 3:]
         cond_eps, uncond_eps = torch.split(eps, len(eps) // 2, dim=0)
         half_eps = uncond_eps + cfg_scale * (cond_eps - uncond_eps)
@@ -300,17 +262,10 @@ class ComboStoc(nn.Module):
         return torch.cat([eps, rest], dim=1)
 
 
-#################################################################################
-#                   Sine/Cosine Positional Embedding Functions                  #
-#################################################################################
-# https://github.com/facebookresearch/mae/blob/main/util/pos_embed.py
+
 
 def get_2d_sincos_pos_embed(embed_dim, grid_size, cls_token=False, extra_tokens=0):
-    """
-    grid_size: int of the grid height and width
-    return:
-    pos_embed: [grid_size*grid_size, embed_dim] or [1+grid_size*grid_size, embed_dim] (w/ or w/o cls_token)
-    """
+
     grid_h = np.arange(grid_size, dtype=np.float32)
     grid_w = np.arange(grid_size, dtype=np.float32)
     grid = np.meshgrid(grid_w, grid_h)  # here w goes first
@@ -335,11 +290,7 @@ def get_2d_sincos_pos_embed_from_grid(embed_dim, grid):
 
 
 def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
-    """
-    embed_dim: output dimension for each position
-    pos: a list of positions to be encoded: size (M,)
-    out: (M, D)
-    """
+
     assert embed_dim % 2 == 0
     omega = np.arange(embed_dim // 2, dtype=np.float64)
     omega /= embed_dim / 2.
@@ -355,9 +306,6 @@ def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
     return emb
 
 
-#################################################################################
-#                                   ComboStoc Configs                                  #
-#################################################################################
 
 def ComboStoc_XL_2(**kwargs):
     return ComboStoc(depth=28, hidden_size=1152, patch_size=2, num_heads=16, **kwargs)

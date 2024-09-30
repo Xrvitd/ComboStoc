@@ -1,11 +1,5 @@
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
 
-"""
-A minimal training script for ComboStoc using PyTorch DDP.
-"""
 import torch
-# the first flag below was False when we tested this script but True makes A100 training a lot faster:
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
 import torch.distributed as dist
@@ -34,9 +28,6 @@ import wandb_utils
 from torchvision.utils import save_image
 
 
-#################################################################################
-#                             Training Helper Functions                         #
-#################################################################################
 
 @torch.no_grad()
 def update_ema(ema_model, model, decay=0.9999):
@@ -47,7 +38,6 @@ def update_ema(ema_model, model, decay=0.9999):
     model_params = OrderedDict(model.named_parameters())
 
     for name, param in model_params.items():
-        # TODO: Consider applying only to params that require_grad to avoid small numerical changes of pos_embed
         ema_params[name].mul_(decay).add_(param.data, alpha=1 - decay)
 
 
@@ -85,10 +75,7 @@ def create_logger(logging_dir):
 
 
 def center_crop_arr(pil_image, image_size):
-    """
-    Center cropping implementation from ADM.
-    https://github.com/openai/guided-diffusion/blob/8fb3ad9197f16bbc40620447b2742e13458d2831/guided_diffusion/image_datasets.py#L126
-    """
+
     while min(*pil_image.size) >= 2 * image_size:
         pil_image = pil_image.resize(
             tuple(x // 2 for x in pil_image.size), resample=Image.BOX
@@ -105,9 +92,6 @@ def center_crop_arr(pil_image, image_size):
     return Image.fromarray(arr[crop_y: crop_y + image_size, crop_x: crop_x + image_size])
 
 
-#################################################################################
-#                                  Training Loop                                #
-#################################################################################
 
 def main(args):
     """
@@ -129,27 +113,27 @@ def main(args):
 
     
     if rank == 0:
-        os.makedirs(args.results_dir, exist_ok=True)  # Make results folder (holds all experiment subfolders)
+        os.makedirs(args.results_dir, exist_ok=True) 
         
     experiment_index = len(glob(f"{args.results_dir}/*"))
-    model_string_name = args.model.replace("/", "-")  # e.g., ComboStoc-XL/2 --> ComboStoc-XL-2 (for naming folders)
+    model_string_name = args.model.replace("/", "-") 
     experiment_name = f"{model_string_name}-{args.exp}" 
-                        # f"{args.path_type}-{args.prediction}-{args.loss_weight}"
-    experiment_dir = f"{args.results_dir}/{experiment_name}"  # Create an experiment folder    
-    
-    
-    # Setup an experiment folder:
-    if rank == 0:
-        # os.makedirs(args.results_dir, exist_ok=True)  # Make results folder (holds all experiment subfolders)
 
-        checkpoint_dir = f"{experiment_dir}/checkpoints"  # Stores saved model checkpoints
+    experiment_dir = f"{args.results_dir}/{experiment_name}"   
+    
+    
+
+    if rank == 0:
+
+
+        checkpoint_dir = f"{experiment_dir}/checkpoints" 
         os.makedirs(checkpoint_dir, exist_ok=True)
-        sample_dir = f"{experiment_dir}/samples"  # Stores saved model checkpoints
+        sample_dir = f"{experiment_dir}/samples"
         os.makedirs(sample_dir, exist_ok=True)
         logger = create_logger(experiment_dir)
         logger.info(f"Experiment directory created at {experiment_dir}")
         
-        # record the code
+
         os.makedirs(f"{experiment_dir}/code", exist_ok=True)
         os.system(f"cp -r ./transport {experiment_dir}/code")
         os.system(f"cp -r ./train.py {experiment_dir}/code")
@@ -175,7 +159,6 @@ def main(args):
         num_classes=args.num_classes
     )
 
-    # Note that parameter initialization is done within the ComboStoc constructor
     ema = deepcopy(model).to(device)  # Create an EMA of the model for use after training
     step_continue=0
     ckpt_state_dict = None
@@ -205,8 +188,7 @@ def main(args):
         ema.load_state_dict(ckpt_state_dict["ema"])
         if ckpt_state_dict.get("step") is not None:
             step_continue = ckpt_state_dict["step"]
-        # opt.load_state_dict(state_dict["opt"])
-        # args = state_dict["args"] 
+
     
 
     requires_grad(ema, False)
@@ -225,7 +207,6 @@ def main(args):
     vae = AutoencoderKL.from_pretrained(f"stabilityai/sd-vae-ft-{args.vae}").to(device)
     logger.info(f"ComboStoc Parameters: {sum(p.numel() for p in model.parameters()):,}")
 
-    # Setup optimizer (we used default Adam betas=(0.9, 0.999) and a constant learning rate of 1e-4 in our paper):
     opt = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0)
     
     if args.ckpt is not None:
@@ -262,14 +243,12 @@ def main(args):
     model.train()  # important! This enables embedding dropout for classifier-free guidance
     ema.eval()  # EMA model should always be in eval mode
 
-    # Variables for monitoring/logging purposes:
+
     train_steps = step_continue
     log_steps = 0
     running_loss = 0
     start_time = time()
 
-    # Labels to condition the model with (feel free to change):
-    # ys = torch.randint(1000, size=(local_batch_size,), device=device)
     ys = torch.randint(1000, size=(8,), device=device)
     use_cfg = args.cfg_scale > 1.0
     # Create sampling noise:
@@ -295,7 +274,6 @@ def main(args):
             x = x.to(device)
             y = y.to(device)
             with torch.no_grad():
-                # Map input images to latent space + normalize latents:
                 x = vae.encode(x).latent_dist.sample().mul_(0.18215)
             model_kwargs = dict(y=y)
             
@@ -351,7 +329,6 @@ def main(args):
                 log_steps = 0
                 start_time = time()
 
-            # Save ComboStoc checkpoint:
             if train_steps % args.ckpt_every == 0 and train_steps > 0:
                 if rank == 0:
                     checkpoint = {
@@ -389,7 +366,6 @@ def main(args):
                     if use_cfg: #remove null samples
                         samples, _ = samples.chunk(2, dim=0)
                     samples = vae.decode(samples / 0.18215).sample
-                    # out_samples = torch.zeros((args.global_batch_size, 3, args.image_size, args.image_size), device=device)
                     out_samples = torch.zeros((8*dist.get_world_size(), 3, args.image_size, args.image_size), device=device)
                     dist.all_gather_into_tensor(out_samples, samples)
                     if args.wandb:
@@ -400,15 +376,13 @@ def main(args):
                             save_image(out_samples, f"{experiment_dir}/samples/sample_{train_steps:07d}.png", nrow=4, normalize=True, value_range=(-1, 1))
                     logging.info("Generating EMA samples done.")
 
-    model.eval()  # important! This disables randomized embedding dropout
-    # do any sampling/FID calculation/etc. with ema (or model) in eval mode ...
+    model.eval()
 
     logger.info("Done!")
     cleanup()
 
 
 if __name__ == "__main__":
-    # Default args here will train ComboStoc-XL/2 with the hyperparameters we used in our paper (except training iters).
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-path", type=str, default="imagenet/train") # Path to ImageNet training data
     parser.add_argument("--results-dir", type=str, default="results")
@@ -429,8 +403,8 @@ if __name__ == "__main__":
     parser.add_argument("--wandb", action="store_true")
     parser.add_argument("--ckpt", type=str, default=None,
                         help="Optional path to a custom ComboStoc checkpoint")
-    parser.add_argument("--combostoc-type", type=str, default="INSYNC_ALL", 
-                        help="ComboStoch type, one of [INSYNC_NONE, INSYNC_VEC, INSYNC_PATCH, INSYNC_ALL]") # select the type of ComboStoc
+    parser.add_argument("--combostoc-type", type=str, default="UNSYNC_ALL", 
+                        help="ComboStoch type, one of [UNSYNC_NONE, UNSYNC_VEC, UNSYNC_PATCH, UNSYNC_ALL]") # select the type of ComboStoc
 
     parse_transport_args(parser)
     args = parser.parse_args()

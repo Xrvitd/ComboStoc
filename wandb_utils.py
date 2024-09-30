@@ -20,7 +20,6 @@ def namespace_to_dict(namespace):
 
 
 def generate_run_id(exp_name):
-    # https://stackoverflow.com/questions/16008670/how-to-hash-a-string-into-8-digits
     return str(int(hashlib.sha256(exp_name.encode('utf-8')).hexdigest(), 16) % 10 ** 8)
 
 

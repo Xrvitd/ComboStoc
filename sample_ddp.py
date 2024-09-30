@@ -1,13 +1,4 @@
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
 
-"""
-Samples a large number of images from a pre-trained ComboStoc model using DDP.
-Subsequently saves a .npz file that can be used to compute FID and other
-evaluation metrics via the ADM repo: https://github.com/openai/guided-diffusion/tree/main/evaluations
-
-For a simple single-GPU/CPU sampling script, see sample.py.
-"""
 import torch
 import torch.distributed as dist
 from models import ComboStoc_models
@@ -45,7 +36,7 @@ def main(mode, args):
     """
     Run sampling.
     """
-    torch.backends.cuda.matmul.allow_tf32 = args.tf32  # True: fast but may lead to some small numerical differences
+    torch.backends.cuda.matmul.allow_tf32 = args.tf32  
     assert torch.cuda.is_available(), "Sampling with DDP requires at least one GPU. sample.py supports CPU-only usage"
     torch.set_grad_enabled(False)
 
@@ -74,7 +65,7 @@ def main(mode, args):
         num_classes=args.num_classes,
         learn_sigma=learn_sigma,
     ).to(device)
-    # Auto-download a pre-trained model or load a custom ComboStoc checkpoint from train.py:
+
     ckpt_path = args.ckpt or f"ComboStoc-XL-2-{args.image_size}x{args.image_size}.pt"
     state_dict = find_model(ckpt_path)
     model.load_state_dict(state_dict)
@@ -87,7 +78,7 @@ def main(mode, args):
         args.loss_weight,
         args.train_eps,
         args.sample_eps,
-        combostoc_type = "INSYNC_ALL"
+        combostoc_type = "UNSYNC_ALL"
     )
     sampler = Sampler(transport)
     if mode == "ODE":
@@ -138,10 +129,9 @@ def main(mode, args):
         print(f"Saving .png samples at {sample_folder_dir}")
     dist.barrier()
 
-    # Figure out how many samples we need to generate on each GPU and how many iterations we need to run:
+
     n = args.per_proc_batch_size
     global_batch_size = n * dist.get_world_size()
-    # To make things evenly-divisible, we'll sample a bit more than we need and then discard the extra samples:
     num_samples = len([name for name in os.listdir(sample_folder_dir) if (os.path.isfile(os.path.join(sample_folder_dir, name)) and ".png" in name)])
     total_samples = int(math.ceil(args.num_fid_samples / global_batch_size) * global_batch_size)
     if rank == 0:
@@ -156,11 +146,10 @@ def main(mode, args):
     total = 0
     
     for i in pbar:
-        # Sample inputs:
+        
         z = torch.randn(n, model.in_channels, latent_size, latent_size, device=device)
         y = torch.randint(0, args.num_classes, (n,), device=device)
         
-        # Setup classifier-free guidance:
         if using_cfg:
             z = torch.cat([z, z], 0)
             y_null = torch.tensor([1000] * n, device=device)
@@ -173,7 +162,7 @@ def main(mode, args):
 
         samples = sample_fn(z, model_fn, **model_kwargs)[-1]
         if using_cfg:
-            samples, _ = samples.chunk(2, dim=0)  # Remove null class samples
+            samples, _ = samples.chunk(2, dim=0) 
 
         samples = vae.decode(samples / 0.18215).sample
         samples = torch.clamp(127.5 * samples + 128.0, 0, 255).permute(0, 2, 3, 1).to("cpu", dtype=torch.uint8).numpy()
@@ -185,7 +174,6 @@ def main(mode, args):
         total += global_batch_size
         dist.barrier()
 
-    # Make sure all processes have finished saving their samples before attempting to convert to .npz
     dist.barrier()
     if rank == 0:
         create_npz_from_sample_folder(sample_folder_dir, args.num_fid_samples)
