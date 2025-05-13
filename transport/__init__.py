@@ -1,4 +1,4 @@
-from .transport import Transport, ModelType, WeightType, PathType, Sampler
+from .transport import Transport, ModelType, WeightType, PathType, Sampler, ComboStocType
 
 def create_transport(
     path_type='Linear',
@@ -6,7 +6,19 @@ def create_transport(
     loss_weight=None,
     train_eps=None,
     sample_eps=None,
+    combostoc_type : str = "Error"
 ):
+    """function for creating Transport object
+    **Note**: model prediction defaults to velocity
+    Args:
+    - path_type: type of path to use; default to linear
+    - learn_score: set model prediction to score
+    - learn_noise: set model prediction to noise
+    - velocity_weighted: weight loss by velocity weight
+    - likelihood_weighted: weight loss by likelihood weight
+    - train_eps: small epsilon for avoiding instability during training
+    - sample_eps: small epsilon for avoiding instability during sampling
+    """
 
     if prediction == "noise":
         model_type = ModelType.NOISE
@@ -36,7 +48,7 @@ def create_transport(
     elif (path_type in [PathType.GVP, PathType.LINEAR] and model_type != ModelType.VELOCITY):
         train_eps = 1e-3 if train_eps is None else train_eps
         sample_eps = 1e-3 if train_eps is None else sample_eps
-    else:
+    else: # velocity & [GVP, LINEAR] is stable everywhere
         train_eps = 0
         sample_eps = 0
     
@@ -47,6 +59,7 @@ def create_transport(
         loss_type=loss_type,
         train_eps=train_eps,
         sample_eps=sample_eps,
+        combostoc_type = ComboStocType[combostoc_type.upper()]
     )
     
     return state
