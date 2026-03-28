@@ -1,4 +1,4 @@
-## ComboStoc: Combinatorial Stochasticity for Diffusion Generative Models<br><sub>Official Code</sub>
+## ComboStoc: Combinatorial Stochasticity for Diffusion Generative Models<br><sub>ACM Transactions on Graphics, SIGGRPAH 2026</sub>
 
 
 
