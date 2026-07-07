@@ -123,4 +123,4 @@ torchrun --nnodes=1 --nproc_per_node=N sample_ddp.py SDE --model ComboStoc-XL/2 
 ```
 
 
-Note: For the COV values reported in Tab. 3 of our paper, we follow the metric convention used in StructRe, where COV is computed as a nearest neighbor Chamfer distance from the reference test set to the generated set. Therefore, this value is a distance measure and lower is better. This differs from the original COV definition in l-GAN and SP-GAN, where COV measures the fraction of reference shapes covered by generated samples.
+Note: For the COV values reported in Tab. 4 of our paper, we follow the metric convention used in StructRe, where COV is computed as a nearest neighbor Chamfer distance from the reference test set to the generated set. Therefore, this value is a distance measure and lower is better. This differs from the original COV definition in l-GAN and SP-GAN, where COV measures the fraction of reference shapes covered by generated samples.
